@@ -118,6 +118,21 @@ void spiRec(uint8_t* data, int size) {
 #endif
 }
 
+void spiSend(uint8_t* data, int size) {
+#ifdef USE_SPI_LIB
+  byte tmp[size];
+
+  memcpy(tmp, data, size);
+
+  SDCARD_SPI.transfer(tmp, size);
+#else
+  while (size) {
+    *data++ = spiSend();
+    size--;
+  }
+#endif
+}
+
 //------------------------------------------------------------------------------
 // send command and return error code.  Return zero for OK
 uint8_t Sd2Card::cardCommand(uint8_t cmd, uint32_t arg) {
@@ -657,9 +672,7 @@ uint8_t Sd2Card::writeData(uint8_t token, const uint8_t* src) {
 
 #else  // OPTIMIZE_HARDWARE_SPI
   spiSend(token);
-  for (uint16_t i = 0; i < 512; i++) {
-    spiSend(src[i]);
-  }
+  spiSend((uint8_t*)src, 512);
 #endif  // OPTIMIZE_HARDWARE_SPI
   spiSend(0xff);  // dummy crc
   spiSend(0xff);  // dummy crc
